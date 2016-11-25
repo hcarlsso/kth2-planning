@@ -1,0 +1,12 @@
+<!-- launch file -->
+<launch>
+	<!-- start gazebo turtlebot simulation -->
+	<include file="$(find turtlebot_gazebo)/launch/amcl_demo.launch"></include>
+	<include file="$(find turtlebot_gazebo)/launch/turtlebot_world.launch"></include>
+
+	<!-- start rviz -->
+	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find kth2_planning)/rviz/turtlebot.rviz"></node>
+
+	<!-- start ROSPlan  -->
+	<include file="$(find rosplan_planning_system)/launch/interfaced_planning_system.launch"></include>
+</launch>

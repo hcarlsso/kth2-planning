@@ -71,7 +71,7 @@ def load_waypoints(filename):
 
 def add_waypoint(name, pos, connecting_distance):
     global update_map
-    
+
     try:
         newpose = PoseStamped()
         newpose.header.frame_id = 'map'
@@ -89,6 +89,7 @@ def add_waypoint(name, pos, connecting_distance):
     except rospy.ServiceException, e:
         print("Service call failed: %s"%e)
 
+
 def start_node():
     global query_kb, update_kb, update_map
     global location_marker_pub, marker_id
@@ -96,9 +97,11 @@ def start_node():
     rospy.init_node('add_knowledge')
 
     # Wait for services to start
-    print('Waiting for services to start...')
+    print('Waiting for [get_current_instances] services to start...')
     rospy.wait_for_service('/kcl_rosplan/get_current_instances')
+    print('Waiting for [update_knowledge_base] services to start...')
     rospy.wait_for_service('/kcl_rosplan/update_knowledge_base')
+    print('Waiting for [add_waypoint] services to start...')
     rospy.wait_for_service('/kcl_rosplan/roadmap_server/add_waypoint')
 
     # Subscribe to services
@@ -108,34 +111,134 @@ def start_node():
 
     location_marker_pub = rospy.Publisher("/kcl_rosplan/viz/waypoints", MarkerArray, queue_size = 1)
 
+    # Add helicopter
+    add_instance('helicopter', 'heli1')
+
     # Add turtlebot
-    tb_name = 'kenny'
-    add_instance('robot', tb_name)
-    add_fact('robot_at', {'v':tb_name, 'wp':'wp_0_0'})
+    add_instance('turtlebot', 'tb1')
 
-    # Add waypoints
-    connecting_distance = 1.42
-    path = os.path.dirname(os.path.abspath(__file__))
-    waypoints = load_waypoints(path + '/waypoints.txt')
+    # Add crate types
+    add_instance('crate-type','food')
+    add_instance('crate-type', 'medicine')
 
-    xdim = 3;
-    ydim = 3;
+    # Add crates
+    add_instance('crate','food_crate1')
+    add_instance('crate','food_crate2')
+
+    # Add persons
+    add_instance( 'person','person1')
+    add_instance( 'person','person2')
+
+    # Add avoid areas
+    #add_instance( 'area','q1')
+    #add_instance( 'area','q2')
+    #add_instance('area','q3')
+    #add_instance('area','q4')
+
+
+    # Add locations
+
+    xmin = -1.8;
+    xmax = 2.5;
+    ymin = -5.0;
+    ymax = 2;
+    npointsx = 7*2;
+    npointsy = 7*2;
+    stepx = (xmax - xmin)/(npointsx - 1);
+    stepy = (ymax - ymin)/(npointsy - 1);
+    maxstep = max(stepx,stepy);
+    connecting_distance = 1.42 * maxstep;
+
+    # Add initial position
+    add_waypoint('linit', [1.4, -2.4, 0], connecting_distance)
+
+    # Add initial position
+    add_waypoint('g1', [0, 0, 0], connecting_distance)
+
     z = 0;
     j = 0;
-    for x in np.linspace(-xdim,xdim,6):
+    for x in np.linspace(xmin,xmax,npointsx):
         i = 0;
-        for y in np.linspace(-ydim,ydim,6):
+        for y in np.linspace(ymin,ymax,npointsy):
             pos = [x, y, z]
-            name = 'wp_' + str(i) + '_' + str(j)
-            add_instance('waypoint', name)
+            name = 'l_' + str(i) + '_' + str(j)
             add_waypoint(name, pos, connecting_distance)
+            #add_fact('associated_area', {'a': 'q1', 'l1':name})
+
             i = i + 1;
         j = j+1
 
-    # Add goals
-    add_goal('visited', {'wp':'wp_0_0'})
-    add_goal('visited', {'wp':'wp_0_1'})
 
+
+    #add_fact('person-at', {'pers': 'person1', 'loc':'l_4_5'})
+    #add_fact('person-at', {'pers': 'person2', 'loc':'l_6_4'})
+
+    add_fact('crate-is-type', {'crate_': 'food_crate1', 'c_type':'food'})
+    add_fact('crate-is-type', {'crate_': 'food_crate2', 'c_type':'food'})
+
+
+    #add_fact('connected-area', {'a1': 'q1', 'a2': 'q2'})
+    #add_fact('connected-area', {'a1': 'q1', 'a2': 'q3'})
+    #add_fact('connected-area', {'a1': 'q1', 'a2': 'q4'})
+
+    #add_fact('connected-area', {'a1': 'q2', 'a2': 'q1'})
+    #add_fact('connected-area', {'a1': 'q2', 'a2': 'q3'})
+    #add_fact('connected-area', {'a1': 'q2', 'a2': 'q4'})
+
+    #add_fact('connected-area', {'a1': 'q3', 'a2': 'q1'})
+    #add_fact('connected-area', {'a1': 'q3', 'a2': 'q2'})
+    #add_fact('connected-area', {'a1': 'q3', 'a2': 'q4'})
+
+    #add_fact('connected-area', {'a1': 'q4', 'a2': 'q1'})
+    #add_fact('connected-area', {'a1': 'q4', 'a2': 'q2'})
+    #add_fact('connected-area', {'a1': 'q4', 'a2': 'q3'})
+
+    #add_fact('area_available', {'a': 'q2'})
+    #add_fact('area_available', {'a': 'q3'})
+    #add_fact('area_available', {'a': 'q4'})
+
+    # Helicopter Init
+    add_fact('helicopter-available', {'heli': 'heli1'})
+    #add_fact('helicopter-at', {'heli': 'heli1','loc': 'l46'})
+    #add_fact('helicopter-in-area', {'heli': 'heli1','a': 'q1'})
+    add_fact('helicopter-empty', {'heli': 'heli1'})
+
+	# Turtlebot Init
+    add_fact('turtlebot-available', {'tb': 'tb1'})
+    add_fact('turtlebot-at', {'tb': 'tb1','loc': 'linit'})
+    #add_fact('turtlebot-in-area', {'tb': 'tb1','a': 'q1'})
+
+    # Other Init
+    add_fact('person-needs', {'p': 'person1', 'ct':'food'})
+    add_fact('person-needs', {'p': 'person2', 'ct':'food'})
+
+	#Crate Init
+    #add_fact('crate-at', {'c': 'food_crate1','loc': 'l01'})
+    #add_fact('crate-at', {'c': 'food_crate2','loc': 'l10'})
+
+    add_fact('crate-free-standing', {'c': 'food_crate1'})
+    add_fact('crate-free-standing', {'c': 'food_crate2'})
+
+	#(crate-is-type food_crate2 food)
+
+    #add_fact('robot_at', {'v':tb_name, 'wp':'wp_0_0'})
+
+    # Add waypoints
+
+
+
+    # Add goals
+
+    #add_goal('visited', {'wp':'wp_0_0'})
+    #add_goal('visited', {'wp':'wp_0_1'})
+
+    #add_goal('person-has', {'p':'person1', 'ct':'food'})
+    #add_goal('person-has', {'p':'person2', 'ct':'food'})
+
+    add_goal('turtlebot-at', {'tb': 'tb1','loc': 'g1'})
+
+    #(person-has person1 food)
+	#(person-has person2 food)
     rospy.sleep(2)
 
 if __name__ == '__main__':
